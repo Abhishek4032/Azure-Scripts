@@ -1,0 +1,118 @@
+# AZURE LIGHTHOUSE
+# Azure Lighthouse is a service designed by Microsoft that provides advanced automation on Azure Cloud Services. It assures you to manage Azure estates of several customers and protects your IP management.
+# Azure Lighthouse was configured as a part of this project to establish cross tenant connectivity on Azure platform. This will help to patch the servers which are hosted on HCL tenant in the environment also will be helpful going forward for the operation team to manage the entire platform by logging into only one Tenant (KDP)
+# Details Around Lighthouse.
+# 1)	MSP – KDP Tenant is configured as MSP
+# 1.1)	Relevant Details to Configure MSP
+# 1)	Security Group
+# 2)	Group Object ID
+# 3)	Group Name
+# 4)	Permission 
+# 5)	Tenant ID
+# My Customer – HCL is configured as Customer Tenant
+
+
+
+
+
+# 2.1)   Script is required to be executed with relevant MSP details.
+
+                                                # Parameter
+
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "mspOfferName": {
+            "value": "KDP-HOT"
+        },
+        "mspOfferDescription": {
+            "value": "From - b2acf34d-1edb-41b7-9126-f7b866b15a93 to 0e805a53-f141-446a-899f-36d774c8bc4b"
+        },
+        "managedByTenantId": {
+            "value": "b2acf34d-1edb-41b7-9126-f7b866b15a93"
+        },
+        "authorizations": {
+            "value": [
+                { 
+                    "principalId": "d9922fc6-6ce3-49ea-a82a-fd676746a51a", 
+                    "roleDefinitionId": "b24988ac-6180-42a0-ab88-20f7382dd24c",
+                    "principalIdDisplayName": "KDP-HOT"
+                }
+                    ]
+                }                
+        }
+}
+
+
+
+                                                # Templates
+
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "mspOfferName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify a unique name for your offer"
+            }
+        },
+        "mspOfferDescription": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Managed Service Provider offering"
+            }
+        },
+        "managedByTenantId": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the tenant id of the Managed Service Provider"
+            }
+        },
+        "authorizations": {
+            "type": "array",
+            "metadata": {
+                "description": "Specify an array of objects, containing tuples of Azure Active Directory principalId, a Azure roleDefinitionId, and an optional principalIdDisplayName. The roleDefinition specified is granted to the principalId in the provider's Active Directory and the principalIdDisplayName is visible to customers."
+            }
+        }              
+    },
+    "variables": {
+        "mspRegistrationName": "[guid(parameters('mspOfferName'))]",
+        "mspAssignmentName": "[guid(parameters('mspOfferName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedServices/registrationDefinitions",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('mspRegistrationName')]",
+            "properties": {
+                "registrationDefinitionName": "[parameters('mspOfferName')]",
+                "description": "[parameters('mspOfferDescription')]",
+                "managedByTenantId": "[parameters('managedByTenantId')]",
+                "authorizations": "[parameters('authorizations')]"
+            }
+        },
+        {
+            "type": "Microsoft.ManagedServices/registrationAssignments",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('mspAssignmentName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedServices/registrationDefinitions/', variables('mspRegistrationName'))]"
+            ],
+            "properties": {
+                "registrationDefinitionId": "[resourceId('Microsoft.ManagedServices/registrationDefinitions/', variables('mspRegistrationName'))]"
+            }
+        }
+    ],
+    "outputs": {
+        "mspOfferName": {
+            "type": "string",
+            "value": "[concat('Managed by', ' ', parameters('mspOfferName'))]"
+        },
+        "authorizations": {
+            "type": "array",
+            "value": "[parameters('authorizations')]"
+        }
+    }
+}
